@@ -7,40 +7,70 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
-const PdfWithTextOverlay = ({ pdfFile}) => {
+// Component to render PDF pages
+const PdfViewer = ({ pdfFile, scale }) => {
   const [numPages, setNumPages] = useState(null);
 
-  function onDocumentLoadSuccess({ numPages }) {
+  const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
-  }
+  };
 
   return (
-    <div>
-      <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess}>
-        {Array.from(new Array(numPages), (el, index) => (
-          <div key={`page_${index + 1}`} style={{ position: 'relative' }}>
-            <Page pageNumber={index + 1} />
-            {/* {extractedTextData[index + 1].map((text, i) => (
-              <div
-                key={i}
-                style={{
-                  position: 'absolute',
-                  top: `${text.top}%`, // Use OCR coordinates
-                  left: `${text.left}%`,
-                  width: `${text.width}%`,
-                  height: `${text.height}%`,
-                  backgroundColor: 'rgba(255, 255, 0, 0.3)',
-                  pointerEvents: 'none', // Ensure text selection works without interference
-                }}
-              >
-                {text.content}
-              </div>
-            ))} */}
-          </div>
-        ))}
-      </Document>
+    <Document file={pdfFile} onLoadSuccess={onDocumentLoadSuccess}>
+      {Array.from(new Array(numPages), (el, index) => (
+        <Page key={`page_${index + 1}`} pageNumber={index + 1} scale={scale} />
+      ))}
+    </Document>
+  );
+};
+
+// Overlay component to position text with selectable visibility
+const TextOverlay = ({ textOverlay, scale }) => {
+  return (
+    // <div style={{ position: 'relative', pointerEvents: 'none' }}>
+    <>
+      {textOverlay.map((item, index) => (
+        <div
+          key={index}
+          style={{
+            position: 'absolute',
+            left: item.x * scale,
+            top: item.y * scale,
+            width: item.width * scale,
+            height: item.height * scale,
+            color: 'black',//,'transparent', // Make text invisible initially
+            pointerEvents: 'auto', // Allow user to select and interact with the text
+            // backgroundColor: 'lightgray', //'transparent', // Background is transparent initially
+            userSelect: 'text', // Enable text selection
+          }}
+          className="selectable-text"
+        >
+          {item.text}
+        </div>
+      ))}
+      {/* Global CSS for text selection */}
+      <style jsx>{`
+        .selectable-text::selection {
+          color: black; /* Text becomes visible when selected */
+          background-color: rgba(255, 255, 0, 0.5); /* Light yellow transparent background */
+        }
+      `}</style>
+    {/* </div> */}
+    </>
+  );
+};
+
+// Combine PDF viewer and text overlay
+const PdfViewerWithOverlay = ({ pdfFile, textOverlay, scale = 1.0 }) => {
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* PDF Viewer */}
+      <PdfViewer pdfFile={pdfFile} scale={scale} />
+
+      {/* Text Overlay */}
+      <TextOverlay textOverlay={textOverlay} scale={scale} />
     </div>
   );
 };
 
-export default PdfWithTextOverlay;
+export default PdfViewerWithOverlay;
